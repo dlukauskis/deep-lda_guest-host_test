@@ -1,0 +1,114 @@
+####################################
+#plumed.dat for Simple Metadynamics#
+####################################
+#RESTART
+
+###############################################
+###DEFINE RADIUS + CALC PROT-LIG VECTOR COMP###
+###############################################
+LOAD FILE=OPESmetad.cpp
+
+WHOLEMOLECULES STRIDE=1 ENTITY0=1-147 ENTITY1=148-169
+
+########################
+###DEFINITION_OF_COMs###
+########################
+lig: COM ATOMS=148-169
+p1: COM ATOMS=8,134,112,92,71,50,29    # Sugar carbons at the bottom of the host
+p2: COM ATOMS=5,131,110,89,68,47,26    # Sugar carbons at the top of the host
+
+# Guest's Oxygen vs some of the host atoms
+d1: DISTANCE ATOMS=154,64
+d2: DISTANCE ATOMS=154,47
+d3: DISTANCE ATOMS=154,110
+d4: DISTANCE ATOMS=154,129
+d5: DISTANCE ATOMS=154,31
+# Guest's Methyl carbon vs some of the host atoms
+d6: DISTANCE ATOMS=155,64
+d7: DISTANCE ATOMS=155,47
+d8: DISTANCE ATOMS=155,110
+d9: DISTANCE ATOMS=155,129
+d10: DISTANCE ATOMS=155,31
+
+########################
+###DEFINITION_OF_ARGs###
+########################
+# CV1: pp.proj = projection on the axis. The distance from the axis to the origin (along the axis)
+# CV2: pp.ext = orthogonal distance between the ATOM(=lig) to the axis.
+# CV3: ener = energy for the well-tempered ensemble. NOT for plain metaD.
+
+############
+###PoA_CV###
+############
+pp: PROJECTION_ON_AXIS AXIS_ATOMS=p1,p2 ATOM=lig
+
+#######################
+###FUNNEL_PARAMETERS###
+#######################
+s_cent: CONSTANT VALUES=1.0                                           # INFLEXION
+beta_cent: CONSTANT VALUES=2.0    	                              # STEEPNESS
+wall_width: CONSTANT VALUES=0.50                                      # WIDTH (h)
+wall_buffer: CONSTANT VALUES=0.15  	                              # BUFFER (f, total width = WIDTH + BUFFER)
+lwall: LOWER_WALLS ARG=pp.proj AT=-0.2 KAPPA=20000.0 EXP=2 EPS=1        # Lower Wall (the starting point of the funnel)
+uwall: UPPER_WALLS ARG=pp.proj AT=2.0 KAPPA=20000.0 EXP=2 EPS=1        # Upper Wall (the ending point of the funnel)
+
+#LOAD PYTORCH MODEL
+deep: PYTORCH_MODEL MODEL=../../2_training_model/model/model.pt ARG=d1,d2,d3,d4,d5,d6,d7,d8,d9,d10
+#  we transform the NN output by sw = s + s^3.
+# This transformation improves the behaviour of the Deep-LDA CV sw in enhanced sampling, as it increases
+# its width in the important input states B and U. - from the nature paper supplement
+sw: MATHEVAL ARG=deep.node-0 FUNC=x+x^3 PERIODIC=NO
+
+##################################
+###########CALCULATE FUNNEL#######
+# Returns the radius of the funnel
+# at the current value of the cv
+##################################
+MATHEVAL ...
+	LABEL=wall_center
+	ARG=pp.proj,s_cent,beta_cent,wall_width,wall_buffer
+	VAR=s,sc,b,h,f
+	FUNC=h*(1./(1.+exp(b*(s-sc))))+f
+	PERIODIC=NO
+... MATHEVAL
+
+
+##############################
+#####POTENTIAL_PARAMETERS#####
+##############################
+scaling: CONSTANT VALUES=1.0
+spring: CONSTANT VALUES=1000.0
+
+##############################
+#######DEFINE_POTENTIAL#######
+##############################
+MATHEVAL ...
+	LABEL=wall_bias
+	ARG=pp.ext,spring,wall_center,scaling
+	VAR=z,k,zc,sf
+	FUNC=step(z-zc)*k*(z-zc)*(z-zc)/(sf*sf)
+	PERIODIC=NO
+... MATHEVAL
+
+finalbias: BIASVALUE ARG=wall_bias
+
+
+##############################
+########DEFINE_OPES###########
+##############################
+
+OPES_METAD ...
+   LABEL=opes
+   #ARG=pp.proj,sw # they also biased the proj, sw was just water coordination
+   ARG=sw
+   FILE=Kernels.data
+   PACE=500
+   BARRIER=50
+   RESTART=NO
+   STATE_RFILE=compressed_Kernels.data
+   STATE_WFILE=compressed_Kernels.data
+   STATE_WSTRIDE=50000
+... OPES_METAD
+
+PRINT ARG=* STRIDE=1000 FILE=COLVAR FMT=%8.4f
+
