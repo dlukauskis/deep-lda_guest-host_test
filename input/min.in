@@ -1,0 +1,20 @@
+  Minimization step with solute heavy-atom restraints
+  &cntrl
+  imin = 1,            ! perform minimization
+  maxcyc = 5000,       ! max. number of minimization cycles
+  ncyc = 1000,         ! run steepest descent for NCYC cycles
+  ntmin = 1,           ! switch from steepest descent to conjugate gradient
+                       ! after NCYC steps
+  ntx = 1,             ! read in the coordinates, not the velocities
+  ntc = 1,             ! no SHAKE
+  ntf = 1,             ! calculate all interactions in force evaluation
+  ntb = 1,             ! PBC; constant volume
+  ntp = 0,             ! no pressure scaling
+  cut = 10.0,           ! nonbonded cutoff (A)
+  ntwx = 1000,         ! write coordinates every NTWX cycles to mdcrd file
+  ntwe = 0,            ! don't write the energies and temp. to mden file
+  ntpr = 1000,         ! write energy info to mdout/mdinfo every NTPR cycles
+  ntr = 1,             ! switch on restraints
+  restraint_wt = 5.0,  ! force constant for restraints (kcal mol^-1 A^-2)
+  restraintmask = '!@H=,h= & !:WAT,SOL,Na+,Cl-,MOL', ! restrain solute heavy atoms
+  /

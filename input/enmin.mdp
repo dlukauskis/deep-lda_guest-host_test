@@ -1,0 +1,58 @@
+;====================================================
+; Energy minimization
+;====================================================
+
+; RUN CONTROL & MINIMIZATION
+;----------------------------------------------------
+define                 = -DFLEXIBLE
+integrator             = steep
+nsteps                 = 10000
+emtol                  = 10
+emstep                 = 0.01
+nstcomm                = 100
+
+; OUTPUT CONTROL
+;----------------------------------------------------
+nstxout                = 0          ; don't save coordinates to .trr
+nstvout                = 0          ; don't save velocities to .trr
+nstfout                = 0          ; don't save forces to .trr
+
+nstxout-compressed     = 0       ; dont save xtc trajectory 
+compressed-x-precision = 0
+nstlog                 = 0       ; dont update the log
+nstenergy              = 0       ; dont save energies
+nstcalcenergy          = 0
+
+; NEIGHBOR SEARCHING
+;----------------------------------------------------
+cutoff-scheme          = Verlet
+ns-type                = grid
+nstlist                = 1
+rlist                  = 1.0
+
+; BONDS
+;----------------------------------------------------
+constraints            = none
+
+; ELECTROSTATICS
+;----------------------------------------------------
+coulombtype            = PME
+coulomb-modifier       = Potential-shift-Verlet
+rcoulomb               = 1.0
+pme-order              = 4
+fourierspacing         = 0.12
+ewald-rtol             = 5e-4
+
+; VDW
+;----------------------------------------------------
+vdw-type                = Cut-off
+vdw-modifier            = Potential-shift-Verlet
+verlet-buffer-tolerance = 0.005
+rvdw                    = 1.0
+DispCorr                = EnerPres
+
+; TEMPERATURE & PRESSURE COUPL
+;----------------------------------------------------
+Tcoupl              = no
+Pcoupl              = no
+gen_vel             = no
