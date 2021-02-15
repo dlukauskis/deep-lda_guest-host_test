@@ -1,0 +1,25 @@
+####################################
+#plumed.dat for Simple Metadynamics#
+####################################
+
+WHOLEMOLECULES STRIDE=1 ENTITY0=1-147 ENTITY1=148-169
+
+lig: COM ATOMS=148-169
+p2: COM ATOMS=5,131,110,89,68,47,26    # Sugar carbons at the top of the host
+p1: COM ATOMS=8,134,112,92,71,50,29    # Sugar carbons at the bottom of the host
+
+# Guest's Oxygen vs some of the host atoms
+d1: DISTANCE ATOMS=154,64
+d2: DISTANCE ATOMS=154,47
+d3: DISTANCE ATOMS=154,110
+d4: DISTANCE ATOMS=154,129
+d5: DISTANCE ATOMS=154,31
+# Guest's Methyl carbon vs some of the host atoms
+d6: DISTANCE ATOMS=155,64
+d7: DISTANCE ATOMS=155,47
+d8: DISTANCE ATOMS=155,110
+d9: DISTANCE ATOMS=155,129
+d10: DISTANCE ATOMS=155,31
+
+PRINT ARG=* STRIDE=100 FILE=COLVAR FMT=%8.4f
+
